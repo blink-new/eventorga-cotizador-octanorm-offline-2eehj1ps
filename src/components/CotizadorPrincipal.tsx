@@ -8,6 +8,8 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
 import { EditorPaquete } from './EditorPaquete';
+import { ValidadorDatos } from './ValidadorDatos';
+import { GestorConfiguraciones } from './GestorConfiguraciones';
 import { 
   PAQUETES_OCTANORM, 
   CONFIGURACION_DEFAULT, 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calculator, FileText, Download, TestTube, Wifi, WifiOff } from 'lucide-react';
+import { Calculator, FileText, Download, TestTube, Wifi, WifiOff, Scale, History, Layers } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
@@ -8,16 +8,50 @@ import { CotizadorPrincipal } from './components/CotizadorPrincipal';
 import { ResultadosCalculo } from './components/ResultadosCalculo';
 import { TestsAutomaticos } from './components/TestsAutomaticos';
 import { ExportacionPDF } from './components/ExportacionPDF';
-import { type ResultadoCalculo } from './lib/calculator';
+import { ComparadorPaquetes } from './components/ComparadorPaquetes';
+import { HistorialCotizaciones } from './components/HistorialCotizaciones';
+import { useHistorialCotizaciones } from './hooks/useHistorialCotizaciones';
+import { PlantillasPaquetes } from './components/PlantillasPaquetes';
+import { type ResultadoCalculo, type PaqueteOctanorm, PAQUETES_OCTANORM, CONFIGURACION_DEFAULT } from './lib/calculator';
 
 function App() {
   const [resultado, setResultado] = useState<ResultadoCalculo | null>(null);
   const [tabActiva, setTabActiva] = useState('cotizador');
   const [isOnline] = useState(false); // Siempre offline para esta app
+  const [paquetes, setPaquetes] = useState<PaqueteOctanorm[]>(PAQUETES_OCTANORM);
+  const { guardarCotizacion } = useHistorialCotizaciones();
 
   const handleCalculoCompleto = (nuevoResultado: ResultadoCalculo) => {
     setResultado(nuevoResultado);
     setTabActiva('resultados');
+    
+    // Guardar automáticamente en el historial
+    guardarCotizacion(nuevoResultado);
+  };
+
+  const handleSeleccionarPaqueteComparador = (paquete: PaqueteOctanorm) => {
+    // Cambiar a la tab del cotizador con el paquete preseleccionado
+    setTabActiva('cotizador');
+    // Aquí podrías pasar el paquete seleccionado al cotizador si fuera necesario
+  };
+
+  const handleCargarCotizacionHistorial = (cotizacion: any) => {
+    setResultado(cotizacion);
+    setTabActiva('resultados');
+  };
+
+  const handleExportarCotizacionHistorial = (cotizacion: any) => {
+    setResultado(cotizacion);
+    setTabActiva('exportar');
+  };
+
+  const handleSeleccionarPlantilla = (paquete: PaqueteOctanorm) => {
+    // Agregar la plantilla a la lista de paquetes disponibles si no existe
+    const paqueteExiste = paquetes.find(p => p.id === paquete.id);
+    if (!paqueteExiste) {
+      setPaquetes([...paquetes, paquete]);
+    }
+    setTabActiva('cotizador');
   };
 
   return (
@@ -43,8 +77,8 @@ function App() {
               </Badge>
               
               <div className="text-right">
-                <p className="text-sm font-medium text-slate-900">Versión 1.0</p>
-                <p className="text-xs text-slate-600">Offline-First</p>
+                <p className="text-sm font-medium text-slate-900">Versión 2.0</p>
+                <p className="text-xs text-slate-600">Completamente Parametrizable</p>
               </div>
             </div>
           </div>
@@ -60,16 +94,42 @@ function App() {
           </h2>
           <p className="text-lg text-slate-600 max-w-3xl mx-auto">
             Calcula automáticamente el CTP y PAR de tus paquetes Octanorm con fórmulas exactas de amortización. 
-            Exporta presupuestos profesionales en PDF y Excel en menos de 5 minutos.
+            Completamente parametrizable por metros cuadrados. Exporta presupuestos profesionales en PDF y Excel.
           </p>
+          <div className="mt-4 flex justify-center items-center space-x-6 text-sm text-slate-500">
+            <span className="flex items-center">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+              100% Offline
+            </span>
+            <span className="flex items-center">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+              Fórmulas Exactas
+            </span>
+            <span className="flex items-center">
+              <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+              Exportación PDF/Excel
+            </span>
+            <span className="flex items-center">
+              <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+              Completamente Parametrizable
+            </span>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
         <Tabs value={tabActiva} onValueChange={setTabActiva} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-7 mb-8">
             <TabsTrigger value="cotizador" className="flex items-center space-x-2">
               <Calculator className="h-4 w-4" />
               <span>Cotizador</span>
+            </TabsTrigger>
+            <TabsTrigger value="plantillas" className="flex items-center space-x-2">
+              <Layers className="h-4 w-4" />
+              <span>Plantillas</span>
+            </TabsTrigger>
+            <TabsTrigger value="comparador" className="flex items-center space-x-2">
+              <Scale className="h-4 w-4" />
+              <span>Comparar</span>
             </TabsTrigger>
             <TabsTrigger value="resultados" disabled={!resultado} className="flex items-center space-x-2">
               <FileText className="h-4 w-4" />
@@ -78,6 +138,10 @@ function App() {
             <TabsTrigger value="exportar" disabled={!resultado} className="flex items-center space-x-2">
               <Download className="h-4 w-4" />
               <span>Exportar</span>
+            </TabsTrigger>
+            <TabsTrigger value="historial" className="flex items-center space-x-2">
+              <History className="h-4 w-4" />
+              <span>Historial</span>
             </TabsTrigger>
             <TabsTrigger value="tests" className="flex items-center space-x-2">
               <TestTube className="h-4 w-4" />
@@ -89,12 +153,38 @@ function App() {
             <CotizadorPrincipal onCalculoCompleto={handleCalculoCompleto} />
           </TabsContent>
 
+          <TabsContent value="plantillas">
+            <PlantillasPaquetes onSeleccionarPlantilla={handleSeleccionarPlantilla} />
+          </TabsContent>
+
+          <TabsContent value="comparador">
+            <ComparadorPaquetes 
+              paquetes={paquetes}
+              datosProyecto={{ 
+                metrosCuadrados: 50, 
+                nombreCliente: '', 
+                nombreProyecto: '', 
+                fechaCotizacion: new Date().toISOString().split('T')[0], 
+                observaciones: '' 
+              }}
+              configuracion={CONFIGURACION_DEFAULT}
+              onSeleccionarPaquete={handleSeleccionarPaqueteComparador}
+            />
+          </TabsContent>
+
           <TabsContent value="resultados">
             {resultado && <ResultadosCalculo resultado={resultado} />}
           </TabsContent>
 
           <TabsContent value="exportar">
             {resultado && <ExportacionPDF resultado={resultado} />}
+          </TabsContent>
+
+          <TabsContent value="historial">
+            <HistorialCotizaciones 
+              onCargarCotizacion={handleCargarCotizacionHistorial}
+              onExportarCotizacion={handleExportarCotizacionHistorial}
+            />
           </TabsContent>
 
           <TabsContent value="tests">
@@ -104,7 +194,7 @@ function App() {
 
         {/* Footer Info */}
         <div className="mt-16 border-t border-slate-200 pt-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Política Comercial</CardTitle>
@@ -134,7 +224,21 @@ function App() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Características</CardTitle>
+                <CardTitle className="text-lg">Nuevas Características</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm text-slate-600">
+                  <p>✓ Editor de paquetes personalizado</p>
+                  <p>✓ Plantillas especializadas</p>
+                  <p>✓ Comparador de paquetes</p>
+                  <p>✓ Historial de cotizaciones</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Características Base</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm text-slate-600">
